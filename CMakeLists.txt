@@ -1,13 +1,22 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(libvis LANGUAGES C CXX)
 
+list(APPEND CMAKE_PREFIX_PATH "/opt/ros/kinetic")
+list(APPEND CMAKE_PREFIX_PATH "/opt/ros/kinetic/share/catkin/cmake")
 
 # Enable C++11 globally
 set(CMAKE_CXX_STANDARD 11)
 
 # Support IDEs: https://cliutils.gitlab.io/modern-cmake/chapters/features/ides.html
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake-default-targets")
+# set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+# set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake-default-targets")
+
+option(WITH_ROS "Compile with ROS wrapper" ON)
+
+if (WITH_ROS)
+  find_package(catkin_simple REQUIRED)
+  catkin_simple()
+endif ()
 
 if(MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
@@ -23,7 +32,7 @@ include(CheckLanguage)
 
 ################################################################################
 # Dependencies and settings.
-
+find_package(CUDA REQUIRED)
 # CUDA (external)
 # Enable C++11 globally
 # NOTE: The user of this CMake file should set the CUDA arch when invoking
@@ -32,17 +41,16 @@ include(CheckLanguage)
 #       be known to run on exclusively, or a broader set of PTX architectures
 #       in case the binary is intended for distribution.
 check_language(CUDA)
-if (CMAKE_CUDA_COMPILER)
+#if (CMAKE_CUDA_COMPILER)
   enable_language(CUDA)
-  
   # Enable C++11 globally for CUDA code
   if(NOT DEFINED CMAKE_CUDA_STANDARD)
     set(CMAKE_CUDA_STANDARD 11)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
   endif()
-else()
-  message(FATAL_ERROR "CMake did not find CUDA, which is required to build this program.")
-endif()
+#else()
+ # message(FATAL_ERROR "CMake did not find CUDA, which is required to build this program.")
+#endif()
 
 # Cross-platform threading. See:
 # https://cmake.org/cmake/help/latest/module/FindThreads.html
@@ -60,10 +68,11 @@ endif()
 find_package(Boost COMPONENTS serialization filesystem system REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-# Loguru (packaged)
+
 add_library(loguru SHARED
-  libvis/third_party/loguru/loguru.cpp
-)
+        libvis/third_party/loguru/loguru.cpp
+        )
+
 set_property(TARGET loguru PROPERTY FOLDER "libvis/third_party")
 target_include_directories(loguru PUBLIC
   libvis/third_party/loguru/
@@ -122,6 +131,8 @@ set(CMAKE_AUTOMOC ON)
 # Instruct CMake to run rcc (resource compiler) automatically when needed.
 set(CMAKE_AUTORCC ON)
 find_package(Qt5Widgets)
+get_target_property(QtCore_location Qt5::Widgets LOCATION)
+message("${QtCore_location}")
 
 if (UNIX AND NOT APPLE)
   find_package(Qt5X11Extras REQUIRED)
@@ -151,7 +162,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUXX)
   # TODO: It seems gcc cannot disable this locally, therefore added it here as a
   #       workaround.
   set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:-Wno-unknown-pragmas>")
-  
+
   # NOTE: Disabled this since it triggered in a lot of places, including external headers, creating a lot of warning spam.
   set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:-Wno-sign-compare>")
   set(LIBVIS_WARNING_OPTIONS "${LIBVIS_WARNING_OPTIONS};$<$<COMPILE_LANGUAGE:CXX>:-Wno-missing-field-initializers>")
@@ -191,7 +202,7 @@ target_link_libraries(bin2c
 #       otherwise the dereferencing returns the wrong variable.
 function(add_vulkan_shader TARGETNAME INPUT_FILEPATH _GENERATED_HEADERS)
   get_filename_component(INPUT_FILENAME ${INPUT_FILEPATH} NAME)
-  
+
   # Vertex shader.
   add_custom_command (
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${INPUT_FILENAME}.vert.h
@@ -199,7 +210,7 @@ function(add_vulkan_shader TARGETNAME INPUT_FILEPATH _GENERATED_HEADERS)
     COMMAND bin2c -n vis -H ${CMAKE_CURRENT_SOURCE_DIR}/libvis/src/libvis/shaders/license_header.h ${CMAKE_CURRENT_BINARY_DIR}/${INPUT_FILENAME}.vert
     DEPENDS bin2c ${CMAKE_CURRENT_SOURCE_DIR}/${INPUT_FILEPATH}.vert
     )
-  
+
   # Fragment shader.
   add_custom_command (
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${INPUT_FILENAME}.frag.h
@@ -207,7 +218,7 @@ function(add_vulkan_shader TARGETNAME INPUT_FILEPATH _GENERATED_HEADERS)
     COMMAND bin2c -n vis -H ${CMAKE_CURRENT_SOURCE_DIR}/libvis/src/libvis/shaders/license_header.h ${CMAKE_CURRENT_BINARY_DIR}/${INPUT_FILENAME}.frag
     DEPENDS bin2c ${CMAKE_CURRENT_SOURCE_DIR}/${INPUT_FILEPATH}.frag
     )
-  
+
   # Return generated headers in the variable named ${_GENERATED_HEADERS} in the
   # parent scope.
   set(${_GENERATED_HEADERS}
@@ -302,7 +313,7 @@ set(LIBVIS_FILES
   libvis/src/libvis/timing.cc
   libvis/src/libvis/timing.h
   libvis/src/libvis/util.h
-  
+
   ${GENERATED_HEADERS}
   libvis/resources/resources.qrc
 )
@@ -316,17 +327,20 @@ if(VULKAN_FOUND)
   )
 endif()
 
-add_library(libvis 
-  ${LIBVIS_FILES}
-)
-set_property(TARGET libvis PROPERTY FOLDER "libvis")
+#if (WITH_ROS)
+#  cs_add_library(libvis ${LIBVIS_FILES})
+#else()
+  add_library(libvis_core ${LIBVIS_FILES})
+#endif ()
 
-target_compile_options(libvis PRIVATE
+set_property(TARGET libvis_core PROPERTY FOLDER "libvis")
+
+target_compile_options(libvis_core PRIVATE
   "${LIBVIS_WARNING_OPTIONS}"
 )
 
 if(MSVC)
-  target_compile_definitions(libvis PUBLIC NOMINMAX) # to get rid of max define
+  target_compile_definitions(libvis_core PUBLIC NOMINMAX) # to get rid of max define
 endif()
 
 set(BASE_LIB_LIBRARIES
@@ -346,18 +360,18 @@ if(VULKAN_FOUND)
     ${BASE_LIB_LIBRARIES}
   )
 endif()
-target_link_libraries(libvis
+target_link_libraries(libvis_core
   ${BASE_LIB_LIBRARIES}
 )
 set(BASE_LIB_LIBRARIES
-  libvis
+  libvis_core
   ${BASE_LIB_LIBRARIES}
 )
 
 
 # libvis optional library: libvis_cuda.
 # Contains CUDA functionality, which is only useful with NVIDIA graphics cards.
-add_library(libvis_cuda 
+set(LIBVIS_CUDA_FILES
   libvis/src/libvis/cuda/cuda_auto_tuner.h
   libvis/src/libvis/cuda/cuda_buffer.cu
   libvis/src/libvis/cuda/cuda_buffer.cuh
@@ -374,6 +388,11 @@ add_library(libvis_cuda
   libvis/src/libvis/cuda/pixel_corner_projector.cuh
   libvis/src/libvis/cuda/pixel_corner_projector.h
 )
+
+add_library(libvis_cuda
+  ${LIBVIS_CUDA_FILES}
+)
+
 set_property(TARGET libvis_cuda PROPERTY FOLDER "libvis")
 target_include_directories(libvis_cuda PUBLIC
   ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
@@ -382,7 +401,7 @@ target_compile_options(libvis_cuda PRIVATE
   "${LIBVIS_WARNING_OPTIONS}"
 )
 target_link_libraries(libvis_cuda
-  libvis
+  libvis_core
 )
 target_compile_options(libvis_cuda PRIVATE
   $<$<COMPILE_LANGUAGE:CUDA>:-use_fast_math>
@@ -392,3 +411,17 @@ target_compile_options(libvis_cuda PRIVATE
 
 # Applications.
 add_subdirectory(applications)
+
+if (WITH_ROS)
+  cs_install()
+  # TODO: is there a better way to do this?
+  cs_export(INCLUDE_DIRS libvis/src
+                         libvis/third_party/sophus
+                         libvis/third_party/loguru
+                         applications/surfel_meshing/src
+                         applications/surfel_meshing/third_party
+            LIBRARIES libvis_core
+                      libvis_cuda
+                      lib_surfelmeshing
+                      loguru)
+endif ()

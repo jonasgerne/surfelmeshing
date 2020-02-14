@@ -87,6 +87,31 @@ shared_ptr<RenderWindow> RenderWindow::CreateWindow(const std::string& title, in
   #endif
 }
 
+shared_ptr<RenderWindow> RenderWindow::CreateWindow(const std::string& title, int width, int height, API api, const shared_ptr<RenderWindowCallbacks>& callbacks, bool use_qt_thread) {
+        (void) title;
+        (void) api;
+        (void) width;
+        (void) height;
+        (void) callbacks;
+
+#ifdef LIBVIS_HAVE_QT
+        if (api == API::kVulkan) {
+#ifdef LIBVIS_HAVE_VULKAN
+            return shared_ptr<RenderWindow>(new RenderWindowQtVulkan(title, width, height, callbacks));
+#else
+            return nullptr;
+#endif
+        } else if (api == API::kOpenGL) {
+            return shared_ptr<RenderWindow>(new RenderWindowQtOpenGL(title, width, height, callbacks, use_qt_thread));
+        } else {
+            return nullptr;
+        }
+#else
+        // No implementation available.
+    return nullptr;
+#endif
+    }
+
 RenderWindow::RenderWindow(const shared_ptr<RenderWindowCallbacks>& callbacks)
     : callbacks_(callbacks) {
   callbacks_->SetRenderWindow(this);
