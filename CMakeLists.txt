@@ -41,16 +41,16 @@ find_package(CUDA REQUIRED)
 #       be known to run on exclusively, or a broader set of PTX architectures
 #       in case the binary is intended for distribution.
 check_language(CUDA)
-#if (CMAKE_CUDA_COMPILER)
+if (CMAKE_CUDA_COMPILER)
   enable_language(CUDA)
   # Enable C++11 globally for CUDA code
   if(NOT DEFINED CMAKE_CUDA_STANDARD)
     set(CMAKE_CUDA_STANDARD 11)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
   endif()
-#else()
- # message(FATAL_ERROR "CMake did not find CUDA, which is required to build this program.")
-#endif()
+else()
+   message(FATAL_ERROR "CMake did not find CUDA, which is required to build this program.")
+endif()
 
 # Cross-platform threading. See:
 # https://cmake.org/cmake/help/latest/module/FindThreads.html
