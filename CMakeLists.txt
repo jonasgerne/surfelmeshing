@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(libvis LANGUAGES C CXX)
 
-list(APPEND CMAKE_PREFIX_PATH "/opt/ros/kinetic")
-list(APPEND CMAKE_PREFIX_PATH "/opt/ros/kinetic/share/catkin/cmake")
+list(APPEND CMAKE_PREFIX_PATH "/opt/ros/$ENV{ROS_DISTRO}")
+list(APPEND CMAKE_PREFIX_PATH "/opt/ros/$ENV{ROS_DISTRO}/share/catkin/cmake")
 
 # Enable C++11 globally
 set(CMAKE_CXX_STANDARD 11)
