@@ -34,48 +34,50 @@ target_link_libraries(SurfelMeshing
   ${X11_LIBRARIES}
 )
 
-# Tests.
-add_executable(SurfelMeshing_Octree_Test
-  src/surfel_meshing/test/test_octree.cc
-  src/surfel_meshing/test/main.cc
-  src/surfel_meshing/dummy.cu
-  # TODO: Compile the file(s) below into a common base lib?
-  src/surfel_meshing/octree.cc
-)
-target_include_directories(SurfelMeshing_Octree_Test PRIVATE
-  src
-)
-target_link_libraries(SurfelMeshing_Octree_Test
-  ${BASE_LIB_LIBRARIES}
-  gtest
-  Threads::Threads
-)
-add_test(SurfelMeshing_Octree_Test
-  SurfelMeshing_Octree_Test
-)
+if(${WITH_GTEST})
+  # Tests.
+  add_executable(SurfelMeshing_Octree_Test
+    src/surfel_meshing/test/test_octree.cc
+    src/surfel_meshing/test/main.cc
+    src/surfel_meshing/dummy.cu
+    # TODO: Compile the file(s) below into a common base lib?
+    src/surfel_meshing/octree.cc
+  )
+  target_include_directories(SurfelMeshing_Octree_Test PRIVATE
+    src
+  )
+  target_link_libraries(SurfelMeshing_Octree_Test
+    ${BASE_LIB_LIBRARIES}
+    gtest
+    Threads::Threads
+  )
+  add_test(SurfelMeshing_Octree_Test
+    SurfelMeshing_Octree_Test
+  )
 
-add_executable(SurfelMeshing_Triangulation_Test
-  src/surfel_meshing/test/test_triangulation.cc
-  src/surfel_meshing/test/main.cc
-  src/surfel_meshing/dummy.cu
-  # TODO: Compile the files below into a common base lib?
-  src/surfel_meshing/surfel_meshing.cc
-  src/surfel_meshing/octree.cc
-  src/surfel_meshing/surfel_meshing_render_window.cc
-)
-target_include_directories(SurfelMeshing_Triangulation_Test PRIVATE
-  src
-)
-if (UNIX)
-  find_package(X11 REQUIRED)
+  add_executable(SurfelMeshing_Triangulation_Test
+    src/surfel_meshing/test/test_triangulation.cc
+    src/surfel_meshing/test/main.cc
+    src/surfel_meshing/dummy.cu
+    # TODO: Compile the files below into a common base lib?
+    src/surfel_meshing/surfel_meshing.cc
+    src/surfel_meshing/octree.cc
+    src/surfel_meshing/surfel_meshing_render_window.cc
+  )
+  target_include_directories(SurfelMeshing_Triangulation_Test PRIVATE
+    src
+  )
+  if (UNIX)
+    find_package(X11 REQUIRED)
+  endif()
+  target_link_libraries(SurfelMeshing_Triangulation_Test
+    ${BASE_LIB_LIBRARIES}
+    gtest
+    Threads::Threads
+    ${X11_LIBRARIES}
+    libvis_cuda
+  )
+  add_test(SurfelMeshing_Triangulation_Test
+    SurfelMeshing_Triangulation_Test
+  )
 endif()
-target_link_libraries(SurfelMeshing_Triangulation_Test
-  ${BASE_LIB_LIBRARIES}
-  gtest
-  Threads::Threads
-  ${X11_LIBRARIES}
-  libvis_cuda
-)
-add_test(SurfelMeshing_Triangulation_Test
-  SurfelMeshing_Triangulation_Test
-)
