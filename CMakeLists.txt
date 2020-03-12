@@ -9,6 +9,8 @@ set(CMAKE_CXX_STANDARD 11)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake-default-targets")
 
+option(WITH_GTEST "Build with gtest enabled" OFF)
+
 if(MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
@@ -86,10 +88,12 @@ target_link_libraries(loguru
   ${CMAKE_DL_LIBS}
 )
 
+if(${WITH_GTEST})
 # GTest (packaged)
 add_subdirectory(libvis/third_party/gtest)
 enable_testing()
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+endif()
 
 # libpng (packaged)
 add_subdirectory(libvis/third_party/libpng)
