@@ -76,12 +76,8 @@ class RenderWindow {
   
   // Creates a render window with a specific API and initial size.
   static shared_ptr<RenderWindow> CreateWindow(const std::string& title, int width, int height, API api, const shared_ptr<RenderWindowCallbacks>& callbacks);
-
-  // Creates a render window with a specific API and initial size.
-  static shared_ptr<RenderWindow> CreateWindow(const std::string& title, int width, int height, API api, const shared_ptr<RenderWindowCallbacks>& callbacks, bool use_qt_thread);
-
-
-protected:
+  
+ protected:
   RenderWindow(const shared_ptr<RenderWindowCallbacks>& callbacks);
   
   shared_ptr<RenderWindowCallbacks> callbacks_;
